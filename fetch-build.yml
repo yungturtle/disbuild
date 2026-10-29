@@ -1,0 +1,67 @@
+name: Fetch Discord Build
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  
+  # Also allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  fetch-build:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Fetch Discord build number
+        run: python fetch_discord_build.py
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet build.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Configure git
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git add build.json
+          git commit -m "chore: update Discord build number [skip ci]"
+          git push
+      
+      - name: Create Pull Request (optional)
+        if: steps.check_changes.outputs.changed == 'true' && false
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: "chore: update Discord build number"
+          title: "Update Discord build number"
+          body: "Automated update of Discord build number"
+          branch: "update/discord-build"
