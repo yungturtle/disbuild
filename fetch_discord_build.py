@@ -8,7 +8,7 @@ from pathlib import Path
 
 API_URL = "https://discord.sale/api/builds?page=1&limit=1&sort_by=build_date&sort_direction=desc"
 BUILD_FILE = Path(__file__).parent / "build.json"
-TIMEOUT = 30
+TIMEOUT = 90
 MAX_RETRIES = 3
 
 def fetch_build_number(retries=MAX_RETRIES):
